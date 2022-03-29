@@ -57,15 +57,15 @@ func main() {
 			log.Println("phraseSource:", phraseSource)
 		}
 
-		pronEnRe := pronEnRe.FindSubmatch(bytes)
-		if len(pronEnRe) > 0 { // 匹配到英式发音
-			pronEn := strings.TrimSpace(string(pronEnRe[1]))
+		pronEnReMatch := pronEnRe.FindSubmatch(bytes)
+		if len(pronEnReMatch) > 0 { // 匹配到英式发音
+			pronEn := strings.TrimSpace(string(pronEnReMatch[1]))
 			log.Println("pronEn:", pronEn)
 		}
 
-		pronAmRe := pronAmRe.FindSubmatch(bytes)
-		if len(pronAmRe) > 0 { // 匹配到美式发音
-			pronAm := strings.TrimSpace(string(pronAmRe[1]))
+		pronAmMatch := pronAmRe.FindSubmatch(bytes)
+		if len(pronAmMatch) > 0 { // 匹配到美式发音
+			pronAm := strings.TrimSpace(string(pronAmMatch[1]))
 			log.Println("pronAm:", pronAm)
 		}
 
