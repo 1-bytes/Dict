@@ -26,8 +26,9 @@ var (
 	// 单词释义正则
 	transCnFromWordRe = regexp.MustCompile(`<defT><chn>([^<]+)</chn></defT>`)
 	// 词性正则
-	grammarRe = regexp.MustCompile(
-		`<span class="grammar" [^>]+>([^<]+)</span>`)
+	posRe = regexp.MustCompile(`<span class="pos" [^>]+>([^<]+)</span>`)
+	// 语法正则
+	grammarRe = regexp.MustCompile(`<span class="grammar" [^>]+>([^<]+)</span>`)
 )
 
 type WordDetail struct {
@@ -37,6 +38,7 @@ type WordDetail struct {
 	pronEn          string
 	pronAm          string
 	transCnFromWord string
+	pos             string
 	grammar         string
 }
 
@@ -70,42 +72,46 @@ func main() {
 		//}
 
 		// ------------------------设置单词的基础词和翻译 -------------------------
-		wordParent := model.DictWordModel{}
-		tx := db.Table(model.TableDictWord).
-			Where("binary word = ?", wordDetail.phraseSource).
-			First(&wordParent)
-		if err = tx.Error; err != nil && err != gorm.ErrRecordNotFound {
-			panic(err)
-		}
-		if wordParent.ID != 0 {
-			tx := db.Table(model.TableDictWord).
-				Where("binary word = ?", wordDetail.word).
-				Update("parent_id", wordParent.ID)
-			if err = tx.Error; err != nil {
-				panic(err)
-			}
-		}
-
-		// ------------------------设置单词的释义 -------------------------
-		//if wordDetail.transCnFromWord == "" {
-		//	continue
-		//}
 		//wordParent := model.DictWordModel{}
 		//tx := db.Table(model.TableDictWord).
-		//	Where("binary word = ?", wordDetail.word).
+		//	Where("binary word = ?", wordDetail.phraseSource).
 		//	First(&wordParent)
 		//if err = tx.Error; err != nil && err != gorm.ErrRecordNotFound {
 		//	panic(err)
 		//}
-		//tx = db.Table(model.TableDictWordTransMap).
-		//	Create(&model.DictWordTransMapModel{
-		//		Wid:     wordParent.ID,
-		//		TransCN: wordDetail.transCnFromWord,
-		//		Part:    wordDetail.grammar,
-		//	})
-		//if err = tx.Error; err != nil {
-		//	panic(err)
+		//if wordParent.ID < 200000 {
+		//	continue
 		//}
+		//if wordParent.ID != 0 {
+		//	tx := db.Table(model.TableDictWord).
+		//		Where("binary word = ?", wordDetail.word).
+		//		Update("parent_id", wordParent.ID)
+		//	if err = tx.Error; err != nil {
+		//		panic(err)
+		//	}
+		//}
+
+		// ------------------------设置单词的释义 -------------------------
+		if wordDetail.transCnFromWord == "" {
+			continue
+		}
+		wordParent := model.DictWordModel{}
+		tx := db.Table(model.TableDictWord).
+			Where("binary word = ?", wordDetail.word).
+			First(&wordParent)
+		if err = tx.Error; err != nil && err != gorm.ErrRecordNotFound {
+			panic(err)
+		}
+		tx = db.Table(model.TableDictWordTransMap).
+			Create(&model.DictWordTransMapModel{
+				Wid:     wordParent.ID,
+				TransCN: wordDetail.transCnFromWord,
+				Pos:     wordDetail.pos,
+				Grammar: wordDetail.grammar,
+			})
+		if err = tx.Error; err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -138,6 +144,11 @@ func matchWord(content []byte) WordDetail {
 		wordDetail.transCnFromWord = strings.TrimSpace(string(transCnFromWordMatch[1]))
 	}
 	// 匹配词性
+	posMatch := posRe.FindSubmatch(content)
+	if len(posMatch) > 0 {
+		wordDetail.pos = strings.TrimSpace(string(posMatch[1]))
+	}
+	// 匹配语法
 	grammarMatch := grammarRe.FindSubmatch(content)
 	if len(grammarMatch) > 0 {
 		wordDetail.grammar = strings.TrimSpace(string(grammarMatch[1]))
